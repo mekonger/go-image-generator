@@ -2,48 +2,46 @@ package initialize
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/golang-queue/queue"
+	"github.com/golang-queue/queue/core"
 	"github.com/mekonger/go-image-generator/config"
-	"math/rand"
+	"github.com/mekonger/go-image-generator/internal/models"
 	"time"
 )
-
-func sleepSomeTime() string {
-	sleepTime := time.Duration(rand.Intn(60)) * time.Second
-	message := fmt.Sprintf("Sleeping for %v", sleepTime)
-	fmt.Printf("About to process: %s\n", message)
-	time.Sleep(sleepTime)
-	return message
-}
-
-func job(i int, rets chan string) func(ctx context.Context) error {
-	return func(ctx context.Context) error {
-		sleepSomeTime()
-		rets <- fmt.Sprintf("Hello commander, I'm handling the job: %02d", +i)
-		return nil
-	}
-}
 
 func runTasks() {
 	taskN := 100
 	rets := make(chan string, taskN)
 
-	q := queue.NewPool(5)
+	q := queue.NewPool(30, queue.WithFn(func(ctx context.Context, m core.QueuedMessage) error {
+		v, _ := m.(*models.JobData)
+		err := json.Unmarshal(m.Bytes(), &v)
+		if err != nil {
+			return err
+		}
+
+		rets <- "Hello, " + v.Name + ", " + v.Message
+		return nil
+	}))
 	defer q.Release()
 
 	for i := 0; i < taskN; i++ {
-		go func() {
-			err := q.QueueTask(job(i, rets))
+		go func(i int) {
+			err := q.Queue(&models.JobData{
+				Name:    "Sleeping Gophers",
+				Message: fmt.Sprintf("Hello commander, I am handling the job: %02d", +i),
+			})
 			if err != nil {
-				panic(err)
+				return
 			}
-		}()
+		}(i)
 	}
 
 	for i := 0; i < taskN; i++ {
 		fmt.Println("message: ", <-rets)
-		time.Sleep(20 * time.Second)
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 
