@@ -1,7 +1,9 @@
 package initialize
 
 import (
+	"context"
 	"fmt"
+	"github.com/golang-queue/queue"
 	"github.com/mekonger/go-image-generator/config"
 	"math/rand"
 	"time"
@@ -15,17 +17,28 @@ func sleepSomeTime() string {
 	return message
 }
 
-func job(i int, rets chan string) {
-	sleepSomeTime()
-	rets <- fmt.Sprintf("Handle the job: %d", i+1)
+func job(i int, rets chan string) func(ctx context.Context) error {
+	return func(ctx context.Context) error {
+		sleepSomeTime()
+		rets <- fmt.Sprintf("Hello commander, I'm handling the job: %02d", +i)
+		return nil
+	}
 }
 
 func runTasks() {
 	taskN := 100
 	rets := make(chan string, taskN)
 
+	q := queue.NewPool(5)
+	defer q.Release()
+
 	for i := 0; i < taskN; i++ {
-		go job(i, rets)
+		go func() {
+			err := q.QueueTask(job(i, rets))
+			if err != nil {
+				panic(err)
+			}
+		}()
 	}
 
 	for i := 0; i < taskN; i++ {
