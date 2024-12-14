@@ -17,5 +17,7 @@ func (r *UserRouter) InitUserRoutes(router *gin.RouterGroup) {
 	userRoute := router.Group("/user")
 	{
 		userRoute.GET("/hello/:name", controller.Hello)
+		userRoute.POST("/hello", controller.PostHello)
+		userRoute.POST("/upload", controller.UploadFile)
 	}
 }
