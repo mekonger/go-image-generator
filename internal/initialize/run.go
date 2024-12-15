@@ -1,21 +1,29 @@
 package initialize
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/golang-queue/queue"
-	"github.com/golang-queue/queue/core"
 	"github.com/mekonger/go-image-generator/config"
 	"github.com/mekonger/go-image-generator/internal/models"
-	"time"
 )
 
 func runTasks() {
 	taskN := 100
 	rets := make(chan string, taskN)
 
-	q := queue.NewPool(30, queue.WithFn(func(ctx context.Context, m core.QueuedMessage) error {
+	q := NSQQueue{rets: rets}
+	q.InitNSQConsumer()
+	q.InitNSQProducer()
+
+	for i := 0; i < taskN; i++ {
+		go func(i int) {
+			q.SendMessage(&models.JobData{
+				Name:    "Sleeping Gophers",
+				Message: fmt.Sprintf("Hello commander, I am handling the job: %02d", +i),
+			})
+		}(i)
+	}
+
+	/*q := queue.NewPool(30, queue.WithFn(func(ctx context.Context, m core.QueuedMessage) error {
 		v, _ := m.(*models.JobData)
 		err := json.Unmarshal(m.Bytes(), &v)
 		if err != nil {
@@ -42,7 +50,7 @@ func runTasks() {
 	for i := 0; i < taskN; i++ {
 		fmt.Println("message: ", <-rets)
 		time.Sleep(20 * time.Millisecond)
-	}
+	}*/
 }
 
 func Run() {
