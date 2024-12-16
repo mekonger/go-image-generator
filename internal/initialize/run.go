@@ -2,6 +2,9 @@ package initialize
 
 import (
 	"fmt"
+	"github.com/jdxyw/generativeart"
+	"github.com/jdxyw/generativeart/arts"
+	"github.com/jdxyw/generativeart/common"
 	"github.com/mekonger/go-image-generator/config"
 	"github.com/mekonger/go-image-generator/internal/models"
 )
@@ -22,35 +25,16 @@ func runTasks() {
 			})
 		}(i)
 	}
+}
 
-	/*q := queue.NewPool(30, queue.WithFn(func(ctx context.Context, m core.QueuedMessage) error {
-		v, _ := m.(*models.JobData)
-		err := json.Unmarshal(m.Bytes(), &v)
-		if err != nil {
-			return err
-		}
-
-		rets <- "Hello, " + v.Name + ", " + v.Message
-		return nil
-	}))
-	defer q.Release()
-
-	for i := 0; i < taskN; i++ {
-		go func(i int) {
-			err := q.Queue(&models.JobData{
-				Name:    "Sleeping Gophers",
-				Message: fmt.Sprintf("Hello commander, I am handling the job: %02d", +i),
-			})
-			if err != nil {
-				return
-			}
-		}(i)
-	}
-
-	for i := 0; i < taskN; i++ {
-		fmt.Println("message: ", <-rets)
-		time.Sleep(20 * time.Millisecond)
-	}*/
+func genrateArt() {
+	c := generativeart.NewCanva(600, 400)
+	c.SetBackground(common.NavajoWhite)
+	c.FillBackground()
+	c.SetLineWidth(1.0)
+	c.SetLineColor(common.Orange)
+	c.Draw(arts.NewColorCircle(30))
+	c.ToPNG("circle.png")
 }
 
 func Run() {
@@ -58,9 +42,10 @@ func Run() {
 
 	r := InitRouter()
 
-	go runTasks()
+	//go runTasks()
+	go genrateArt()
 
-	err := r.Run(":8080")
+	err := r.Run(":8060")
 	if err != nil {
 		panic(err)
 	}
